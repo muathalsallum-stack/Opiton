@@ -249,16 +249,20 @@ async function loadReal(){
 
     rows = [];
     let done = 0;
+    const toDate = new Date().toISOString().split('T')[0];
+    const fromDate = new Date(Date.now() - 12*86400000).toISOString().split('T')[0];
+
     for(const stock of activeList){
       status.textContent = `جاري تحليل ${stock.symbol} (${++done}/${activeList.length})...`;
+      if(done > 1) await new Promise(res => setTimeout(res, 350)); // avoid hitting free-tier rate limits
       try{
-        const histUrl = `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${stock.symbol}&apikey=${encodeURIComponent(key)}`;
+        const histUrl = `https://financialmodelingprep.com/stable/historical-price-eod/light?symbol=${stock.symbol}&from=${fromDate}&to=${toDate}&apikey=${encodeURIComponent(key)}`;
         const histRes = await fetch(histUrl);
         if(!histRes.ok) continue;
         const hist = (await histRes.json()).slice(0, 5);
         if(hist.length < 4) continue;
 
-        const closes = hist.map(h => h.close);
+        const closes = hist.map(h => h.price);
         const volumes = hist.map(h => h.volume);
         const price = closes[0];
         const momentum3d = +(((closes[0] - closes[3]) / closes[3]) * 100).toFixed(1);
